@@ -1,0 +1,197 @@
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from statistics import mean
+from typing import Any
+
+import sys
+
+
+PROTOTYPE_ROOT = Path(__file__).resolve().parents[1]
+REPORTS = PROTOTYPE_ROOT / "reports"
+
+if str(PROTOTYPE_ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(PROTOTYPE_ROOT / "scripts"))
+
+from search_routing_thresholds_constrained import accuracy_metrics
+
+
+BRANCHES = [
+    {
+        "name": "sfrg05_route_floor",
+        "label": "sfrg05 + route_floor",
+        "routing_csv": REPORTS / "vcf_c23_allmethods_full_v0_1_sfrg05_routing.csv",
+        "position": "stable_main_row",
+    },
+    {
+        "name": "df40aux8_route_floor",
+        "label": "df40aux8 + route_floor",
+        "routing_csv": REPORTS / "vcf_c23_allmethods_full_v0_1_sfrank_df40aux8_routing.csv",
+        "position": "balanced_light_branch",
+    },
+    {
+        "name": "df40aux8_transfertree_literal_fixed",
+        "label": "df40aux8 + transfertree_literal_fixed",
+        "routing_csv": REPORTS / "vcf_c23_allmethods_full_v0_1_sfrank_df40aux8_literalfixed_routing.csv",
+        "position": "paired_oriented_frontier",
+    },
+]
+
+
+def load_csv(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def fmt(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        return f"{value:.6f}"
+    return str(value)
+
+
+def write_tsv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0].keys())
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({key: fmt(value) if isinstance(value, float) or value is None else value for key, value in row.items()})
+
+
+def subset_name(row: dict[str, str]) -> str | None:
+    if row.get("label") != "fake":
+        return None
+    source_path = Path(row["source_path"])
+    parts = source_path.parts
+    try:
+        idx = parts.index("c23")
+    except ValueError:
+        return None
+    if len(parts) <= idx + 3:
+        return None
+    method = parts[idx + 1]
+    resolution = parts[idx + 2]
+    return f"{method}@{resolution}"
+
+
+def build_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    summary_rows: list[dict[str, Any]] = []
+    subset_rows: list[dict[str, Any]] = []
+
+    for branch in BRANCHES:
+        rows = load_csv(branch["routing_csv"])
+        metrics = accuracy_metrics(rows)
+        subsets = sorted({subset_name(row) for row in rows if subset_name(row)})
+
+        subset_fake_accs: list[float] = []
+        for subset in subsets:
+            subset_eval_rows = [row for row in rows if row.get("label") == "real" or subset_name(row) == subset]
+            subset_metrics = accuracy_metrics(subset_eval_rows)
+            subset_fake_accs.append(subset_metrics["fake_accuracy"])
+            subset_rows.append(
+                {
+                    "branch": branch["name"],
+                    "label": branch["label"],
+                    "subset": subset,
+                    "balanced_accuracy": subset_metrics["balanced_accuracy"],
+                    "fake_accuracy": subset_metrics["fake_accuracy"],
+                    "protected_real_fpr": subset_metrics["protected_real_fpr"],
+                    "protected_fake_recall": subset_metrics["protected_fake_recall"],
+                    "unprotected_fake_recall": subset_metrics["unprotected_fake_recall"],
+                }
+            )
+
+        summary_rows.append(
+            {
+                "branch": branch["name"],
+                "label": branch["label"],
+                "position": branch["position"],
+                "overall_balanced_accuracy": metrics["balanced_accuracy"],
+                "overall_accuracy": metrics["accuracy"],
+                "overall_fake_accuracy": metrics["fake_accuracy"],
+                "protected_real_fpr": metrics["protected_real_fpr"],
+                "protected_fake_recall": metrics["protected_fake_recall"],
+                "unprotected_fake_recall": metrics["unprotected_fake_recall"],
+                "subset_mean_fake_accuracy": mean(subset_fake_accs),
+                "subset_min_fake_accuracy": min(subset_fake_accs),
+                "subset_max_fake_accuracy": max(subset_fake_accs),
+            }
+        )
+
+    return summary_rows, subset_rows
+
+
+def main() -> None:
+    summary_rows, subset_rows = build_rows()
+    summary_path = REPORTS / "vcf_stress_summary_2026-04-21.tsv"
+    subset_path = REPORTS / "vcf_stress_subset_rows_2026-04-21.tsv"
+    write_tsv(summary_path, summary_rows)
+    write_tsv(subset_path, subset_rows)
+
+    subset_map: dict[str, list[dict[str, Any]]] = {}
+    for row in subset_rows:
+        subset_map.setdefault(row["branch"], []).append(row)
+
+    lines: list[str] = []
+    lines.append("# VCF Deployment-Stress Report")
+    lines.append("")
+    lines.append("This report evaluates the current kept branches on local `VCF` videos using the internal `targets` videos as real anchors and four paired fake-method families (`deeplivecam`, `deeplivecam_enhance`, `simswap_224`, `simswap_512`) under the `c23` compression domain. Each video contributes one extracted frame; fake subsets are aggregated at `method@resolution` granularity.")
+    lines.append("")
+    lines.append("## Verdict")
+    lines.append("")
+    lines.append("- `VCF: completed` on current assets under the `c23` domain.")
+    lines.append("- Absolute performance is materially weaker than on `DeeperForensics-1.0`; all current branches show a large protected-real FPR increase on VCF targets.")
+    lines.append("- `df40aux8 + route_floor` is the best current VCF branch by overall BA and also has slightly lower protected-real FPR than `sfrg05 + route_floor`.")
+    lines.append("- `df40aux8 + transfertree_literal_fixed` still raises fake accuracy further, but it pays a larger real-side cost and remains a frontier / diagnostic branch rather than a stable final row.")
+    lines.append("")
+    lines.append("## Overall Summary")
+    lines.append("")
+    lines.append("| Branch | Role | Overall BA | Fake Acc | PR-FPR | Protected fake recall | Unprotected fake recall | Mean/min/max subset fake acc |")
+    lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for row in summary_rows:
+        lines.append(
+            f"| `{row['label']}` | `{row['position']}` | {fmt(row['overall_balanced_accuracy'])} | {fmt(row['overall_fake_accuracy'])} | {fmt(row['protected_real_fpr'])} | {fmt(row['protected_fake_recall'])} | {fmt(row['unprotected_fake_recall'])} | {fmt(row['subset_mean_fake_accuracy'])} / {fmt(row['subset_min_fake_accuracy'])} / {fmt(row['subset_max_fake_accuracy'])} |"
+        )
+    lines.append("")
+    lines.append("## Method-Resolution Breakdown")
+    lines.append("")
+    lines.append("| Subset | sfrg05 Fake Acc | aux8 Fake Acc | aux8+literal Fake Acc | literal-sfrg05 Delta |")
+    lines.append("| --- | ---: | ---: | ---: | ---: |")
+    sfrg05_rows = {row["subset"]: row for row in subset_map["sfrg05_route_floor"]}
+    aux8_rows = {row["subset"]: row for row in subset_map["df40aux8_route_floor"]}
+    literal_rows = {row["subset"]: row for row in subset_map["df40aux8_transfertree_literal_fixed"]}
+    for subset in sorted(sfrg05_rows):
+        sfrg05_fake = float(sfrg05_rows[subset]["fake_accuracy"])
+        aux8_fake = float(aux8_rows[subset]["fake_accuracy"])
+        literal_fake = float(literal_rows[subset]["fake_accuracy"])
+        lines.append(
+            f"| `{subset}` | {sfrg05_fake:.6f} | {aux8_fake:.6f} | {literal_fake:.6f} | {literal_fake - sfrg05_fake:+.6f} |"
+        )
+    lines.append("")
+    lines.append("## Reading")
+    lines.append("")
+    lines.append("1. VCF is a substantially harsher benchmark than DeeperForensics in the current protocol: the real-side error shoots up, so this benchmark should be read as a real deployment warning rather than a routine confirmation row.")
+    lines.append("2. `df40aux8 + route_floor` edges out `sfrg05 + route_floor` on both overall BA and protected-real FPR, which means the VCF stress profile currently favors the lighter fake-side branch.")
+    lines.append("3. `df40aux8 + transfertree_literal_fixed` reaches the best fake accuracy, but the extra gain comes with the worst protected-real FPR, so it still cannot be promoted to the stable claimed branch.")
+    lines.append("4. The hardest VCF slices are the low-resolution subsets, especially the `270x480` rows dominated by `simswap_224` and `deeplivecam`.")
+    lines.append("")
+    lines.append("## Companion Files")
+    lines.append("")
+    lines.append("- `prototype/reports/vcf_stress_summary_2026-04-21.tsv`")
+    lines.append("- `prototype/reports/vcf_stress_subset_rows_2026-04-21.tsv`")
+    lines.append("- `prototype/reports/vcf_c23_allmethods_full_v0_1_manifest_summary.json`")
+    lines.append("")
+
+    md_path = REPORTS / "vcf_stress_report_2026-04-21.zh-CN.md"
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"Wrote {md_path}")
+    print(f"Wrote {summary_path}")
+    print(f"Wrote {subset_path}")
+
+
+if __name__ == "__main__":
+    main()

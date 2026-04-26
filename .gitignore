@@ -1,0 +1,88 @@
+# Local environments and IDE state
+.conda/
+.venv/
+venv/
+env/
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Research-agent/internal planning logs
+AGENTS.md
+IDEA_REPORT.md
+.pipeline/
+experiment/
+ideation/
+survey/
+figures/
+refine-logs/
+paper-backup-*/
+findings.md
+
+# Large local workspaces: datasets, external repos, checkpoints, features
+workspace/
+ckpts/
+checkpoints/
+weights/
+models/
+datasets/
+data/
+cache/
+
+# Training outputs and model checkpoints
+pilot/passive_baseline/runs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+*.bin
+
+# Archives and raw media
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Large generated manifests and dense per-row score dumps.
+# Keep README/index files, scripts, configs, and lightweight TSV/JSON summaries.
+prototype/manifests/*
+!prototype/manifests/README.md
+prototype/reports/*
+prototype/reports/**/*
+prototype/reports/logs/
+!prototype/reports/README.md
+
+# Most experiment configs are local run records with absolute dataset paths.
+prototype/configs/*.yaml
+!prototype/configs/paths.example.yaml
+
+# Local path configuration
+prototype/configs/paths.local.yaml
+
+# Paper source/output is kept out of the public code repository by default.
+# Keep manuscript files in the submission package or a private branch instead.
+paper/
+
+# Keep pilot source code but not local analysis/run tables.
+pilot/passive_baseline/*.md
+pilot/passive_baseline/*.tsv
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini

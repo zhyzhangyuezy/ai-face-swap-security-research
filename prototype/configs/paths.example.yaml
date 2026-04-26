@@ -1,0 +1,27 @@
+# Copy this file to paths.local.yaml and edit the values for your machine.
+# paths.local.yaml is ignored by Git.
+
+project_root: /absolute/path/to/ai-face-swap-security-research
+asset_root: /absolute/path/to/ai-face-swap-security-research/workspace
+
+repos:
+  deepfakebench: /absolute/path/to/DeepfakeBench
+  videoseal: /absolute/path/to/videoseal
+  ftcn: /absolute/path/to/FTCN
+  altfreezing: /absolute/path/to/AltFreezing
+  m2f2_det: /absolute/path/to/M2F2_Det
+
+datasets:
+  faceforensicspp_real: /absolute/path/to/datasets/faceforensicspp/real
+  faceforensicspp_fake: /absolute/path/to/datasets/faceforensicspp/fake
+  celebdf: /absolute/path/to/datasets/celebdf
+  vcf: /absolute/path/to/datasets/vcf
+  deeperforensics: /absolute/path/to/datasets/deeperforensics
+
+outputs:
+  manifests: /absolute/path/to/ai-face-swap-security-research/prototype/manifests
+  reports: /absolute/path/to/ai-face-swap-security-research/prototype/reports
+  protected_cache: /absolute/path/to/workspace/datasets/derived/protected
+  passive_features: /absolute/path/to/workspace/features/passive
+  provenance_features: /absolute/path/to/workspace/features/provenance
+  checkpoints: /absolute/path/to/workspace/checkpoints
