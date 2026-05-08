@@ -25,6 +25,9 @@ or extracted feature tensors.
 Use GitHub for source code and lightweight summaries. Use GitHub Releases,
 Zenodo, institutional storage, or a private artifact bucket for large auxiliary
 files when licensing permits redistribution.
+The repository-level `ARTIFACT_MANIFEST.md` and `ARTIFACT_CHECKSUMS.sha256`
+provide the paper-facing file index and integrity hashes for locally available
+listed artifacts.
 
 ```text
 repo/

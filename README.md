@@ -20,6 +20,8 @@ has passed through a provenance/protection pipeline.
   outside Git by default.
 - `pilot/`: exploratory training scripts. Large run folders are ignored.
 - `docs/`: release and dataset-preparation notes.
+- `ARTIFACT_MANIFEST.md`: paper-facing artifact index that maps reported rows
+  to local report files, scripts, and figure generators.
 
 Large datasets, checkpoints, external baseline repositories, generated features,
 paper LaTeX/PDF files, and dense score dumps are intentionally excluded from
@@ -52,8 +54,10 @@ python prototype/scripts/audit_topconf_data.py --paths prototype/configs/paths.l
 
 This public code package does not include the manuscript LaTeX, raw benchmark
 media, generated protected media, extracted features, model weights, or dense
-per-row score dumps. Those belong in a submission package or a separate artifact
-release when licensing allows.
+per-row score dumps. Those belong in the journal submission package or a
+separate artifact release when licensing allows. `ARTIFACT_MANIFEST.md`
+records the expected artifact names and regeneration entry points so that the
+public repository, submission package, and larger release bundle stay aligned.
 
 ## GitHub Upload Notes
 
@@ -69,5 +73,6 @@ LaTeX scratch files.
 
 ## License
 
-Choose a code license before making the repository public. Dataset and model
-weights remain governed by their original providers' licenses.
+The repository code is released under the MIT License. Datasets, benchmark
+media, and third-party model weights remain governed by their original
+providers' licenses.
