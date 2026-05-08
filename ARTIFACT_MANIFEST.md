@@ -21,6 +21,8 @@ Integrity hashes for the locally available listed artifacts are recorded in `ART
 - `prototype/reports/tcsvt_risk_closure_2026-05-07.md`
 - `prototype/reports/targeted_tcsvt_diagnostics_2026-04-26.json`
 - `prototype/reports/source_family_error_decomposition_2026-04-26.tsv`
+- `prototype/reports/source_family_robust_guarded_summary_2026-05-08.tsv`
+- `prototype/reports/source_family_robust_guarded_summary_2026-05-08.json`
 - `prototype/reports/temporal_ablation_review_table_2026-04-26.tsv`
 - `prototype/reports/temporal_order_control_2026-04-26.tsv`
 - `prototype/reports/calibration_fraction_sensitivity_2026-04-26.tsv`
